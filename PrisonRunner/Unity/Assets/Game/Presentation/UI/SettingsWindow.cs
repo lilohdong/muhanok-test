@@ -21,7 +21,7 @@ namespace Muhanok.Presentation
     public sealed class SettingsWindow : MonoBehaviour
     {
         private const string Folder = "MuhanokUI/";
-        private static readonly string[] Presets = { "높음", "보통", "저사양 (전시용 노트북)", "사용자 지정" };
+        private static readonly string[] Presets = { "높음", "보통", "저사양", "사용자 지정" };
         private static readonly string[] FrameCaps = { "30 fps", "60 fps", "제한 없음" };
         private static readonly string[] ShadowNames = { "끄기", "낮음", "높음" };
         private static readonly string[] Pages = { "graphics", "sound", "body", "display" };

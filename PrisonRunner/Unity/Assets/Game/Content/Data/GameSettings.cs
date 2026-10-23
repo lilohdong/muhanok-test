@@ -12,9 +12,7 @@ namespace Muhanok.Content
         public MotionTuning Motion = new MotionTuning();
         [Header("Map rendering budget")]
         public RenderBudget Render = new RenderBudget();
-        [Header("Exhibition")]
-        [Tooltip("Exhibition build: every item is available without spending the shared coin pool.")]
-        public bool UnlockAllItems = true;
+        [Header("Items")]
         [Range(0, 1)] public float ItemChancePerChunk = .35f;
         [Range(0, 1)] public float MusicVolume = .35f, EffectsVolume = .7f;
     }

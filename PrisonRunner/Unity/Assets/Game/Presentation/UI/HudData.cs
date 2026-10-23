@@ -6,7 +6,10 @@ namespace Muhanok.Presentation
     // What the screens need from the running game; implemented by the bootstrap.
     public interface IHudData
     {
-        VisitorProfile Visitor { get; }
+        // Who plays the current or next run: the saved profile, or a per-run name in developer mode.
+        PlayerProfile Player { get; }
+        PlayerProfile SavedProfile { get; }
+        bool DeveloperMode { get; }
         Texture CameraTexture { get; }
         PoseFrame PoseFrame { get; }
         PoseStatus PoseStatus { get; }
@@ -18,15 +21,20 @@ namespace Muhanok.Presentation
         float CalibrationProgress { get; }
         float StepsPerMinute { get; }
         bool BodyActive { get; }
-        ExhibitionProgress Progress { get; }
-        DailyRanking Today { get; }
+        PlayerWallet Wallet { get; }
+        Leaderboard Board { get; }
+        PlayerStats Stats { get; }
+        // The run that just finished: its entry, rank among all runs and today, and whether it beat the best distance.
         RankingEntry LastEntry { get; }
         int LastRank { get; }
+        int LastTodayRank { get; }
+        bool LastNewBest { get; }
         float BestDistance { get; }
         float StartBanner { get; }
         float CaughtFlash { get; }
         void PreviewStyle(PlayStyle style);
         void Unlock(ItemKind kind);
+        void SaveProfile(PlayerProfile profile);
         void Recalibrate();
     }
 

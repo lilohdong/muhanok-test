@@ -17,7 +17,7 @@ namespace Muhanok.Presentation
         public void Draw(RunSession session, ChunkSpawner map, float fade, IHudData data, Action pause)
         {
             var state = session.Flow.State;
-            var style = data?.Visitor?.Style ?? PlayStyle.Keyboard;
+            var style = data?.Player?.Style ?? PlayStyle.Keyboard;
             progress.Draw(session, data?.BestDistance ?? 0);
             GUI.color = new Color(1, 1, 1, fade);
             DrawCards(session, map, pause);

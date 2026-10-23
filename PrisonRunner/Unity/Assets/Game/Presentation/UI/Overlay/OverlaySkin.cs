@@ -33,7 +33,7 @@ namespace Muhanok.Presentation
         readonly Dictionary<int, GUIStyle> styles = new Dictionary<int, GUIStyle>();
         readonly Dictionary<string, GUIContent> contents = new Dictionary<string, GUIContent>();
         Texture2D bigTex, smallTex, circleTex;
-        GUIStyle bigBox, smallBox, circleBox;
+        GUIStyle bigBox, smallBox, circleBox, inputStyle;
 
         public OverlaySkin(Font title, Font body)
         {
@@ -146,6 +146,19 @@ namespace Muhanok.Presentation
             else Box(r, hover ? Color.Lerp(fill, Color.white, 0.15f) : fill);
             Text(r, label, size, text, TextAnchor.MiddleCenter);
             return GUI.Button(r, GUIContent.none, GUIStyle.none);
+        }
+
+        // Text field on a wooden frame; the caller sets the control name for focus.
+        public string Input(Rect r, string value, int maxLength, int size = 24)
+        {
+            if (inputStyle == null)
+            {
+                inputStyle = new GUIStyle(GUI.skin.textField) { font = bodyFont, fontSize = size, alignment = TextAnchor.MiddleLeft, padding = new RectOffset(14, 14, 0, 0) };
+                inputStyle.normal.background = inputStyle.focused.background = inputStyle.hover.background = null;
+                inputStyle.normal.textColor = inputStyle.focused.textColor = inputStyle.hover.textColor = Palette.Cream;
+            }
+            BorderBox(r, Palette.Dark, Palette.Wood, 2);
+            return GUI.TextField(r, value ?? "", maxLength, inputStyle);
         }
 
         void Init()

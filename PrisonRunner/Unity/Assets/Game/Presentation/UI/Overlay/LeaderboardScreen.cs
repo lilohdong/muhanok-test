@@ -1,134 +1,93 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
+using Muhanok.Domain;
 using UnityEngine;
-using UnityEngine.Events;
 
 namespace Muhanok.Presentation
 {
-    public class LeaderboardScreen : MonoBehaviour
+    // Distance ranking with all-time and today tabs. After a run it also shows that run's summary and highlights its row.
+    internal sealed class LeaderboardScreen
     {
-        public static LeaderboardScreen Instance { get; private set; }
-
-        [Header("Fonts")]
-        public Font titleFont;
-        public Font bodyFont;
-
-        public Texture2D background;
-        public int guiDepth = -50;
-
-        [Header("Events")]
-        public UnityEvent onRetry = new UnityEvent();
-        public UnityEvent onMain = new UnityEvent();
-
-        [Header("Test")]
-        public bool demoOnStart;
-
         static readonly CultureInfo Num = CultureInfo.InvariantCulture;
         // card slots left to right: 2nd, 1st, 3rd
         static readonly int[] SlotRank = { 1, 0, 2 };
         static readonly float[] SlotHeight = { 138, 158, 128 };
 
-        OverlaySkin skin;
-        bool open, todayOnly, newBest;
-        long myId;
-        List<LeaderboardRecord> list = new List<LeaderboardRecord>();
-        List<LeaderboardRecord> demo;
+        readonly OverlaySkin skin;
+        bool todayOnly, resultMode;
+        RankingEntry mine;
+        List<RankingEntry> list = new List<RankingEntry>();
+        string summary = "";
 
-        public bool IsOpen { get { return open; } }
+        public LeaderboardScreen(OverlaySkin overlaySkin) { skin = overlaySkin; }
 
-        void Awake()
+        // From the menu: developer (exhibition) mode starts on today's tab.
+        public void OpenBoard(IHudData data)
         {
-            Instance = this;
-            if (titleFont == null) titleFont = Resources.Load<Font>("MuhanokUI/BlackHanSans-Regular");
+            resultMode = false; mine = null;
+            todayOnly = data != null && data.DeveloperMode;
+            Reload(data);
         }
 
-        void Start() { if (demoOnStart) ShowDemo(); }
-
-        void OnDestroy()
+        // After a run: today's tab first so players see where they stand among today's runs.
+        public void OpenResult(IHudData data, RunSession session)
         {
-            if (Instance == this) Instance = null;
-            if (skin != null) skin.Dispose();
+            resultMode = true; todayOnly = true; mine = data?.LastEntry;
+            var parts = new List<string>();
+            if (data != null && data.LastTodayRank > 0) parts.Add("오늘 " + data.LastTodayRank + "위");
+            if (data != null && data.LastRank > 0) parts.Add("전체 " + data.LastRank + "위");
+            parts.Add("코인 +" + session.Score.Coins);
+            if (session.Workout.WeightKg.HasValue) parts.Add(session.Workout.EstimatedKcal.ToString("F1", Num) + " kcal");
+            summary = string.Join("  ·  ", parts);
+            Reload(data);
         }
 
-        public void ShowResult(float meters, string playerName = null)
+        void Reload(IHudData data)
         {
-            demo = null;
-            var before = LeaderboardStore.Sorted(false);
-            float prevBest = before.Count > 0 ? before[0].meters : 0f;
-            myId = LeaderboardStore.Add(meters, playerName).id;
-            newBest = meters > prevBest;
-            Open(false);
-        }
-
-        public void Open(bool today)
-        {
-            todayOnly = today;
-            Reload();
-            open = true;
-        }
-
-        public void Close() { open = false; }
-
-        [ContextMenu("Show Demo")]
-        public void ShowDemo()
-        {
-            demo = new List<LeaderboardRecord>();
-            float[] m = { 3105, 2640, 2210, 2030, 1880, 1742, 1615, 1490, 1420, 1388, 1302, 1248, 1190 };
-            for (int i = 0; i < m.Length; i++)
-                demo.Add(new LeaderboardRecord { name = "PLAYER_" + (i + 1).ToString("00"), meters = m[i], date = LeaderboardStore.Today, id = i + 1 });
-            demo[11].name = "나";
-            myId = 12;
-            newBest = true;
-            todayOnly = false;
-            Reload();
-            open = true;
-        }
-
-        void Reload()
-        {
-            list = demo != null ? demo : LeaderboardStore.Sorted(todayOnly);
+            list = data?.Board != null ? data.Board.View(todayOnly, DateTime.Now) : new List<RankingEntry>();
         }
 
         static string Dist(float m) { return Mathf.FloorToInt(m).ToString("N0", Num) + "m"; }
 
-        void OnGUI()
+        // primaryLabel/secondaryLabel: result buttons (다시 하기 / 메인으로 or 다음 플레이어); the menu board only shows a close button.
+        public void Draw(IHudData data, RunSession session, Action primary, string primaryLabel, Action secondary, string secondaryLabel)
         {
-            if (!open) return;
-            if (skin == null) skin = new OverlaySkin(titleFont, bodyFont);
-            GUI.depth = guiDepth;
-
             var oldMatrix = GUI.matrix;
             GUI.matrix = Matrix4x4.identity;
-            skin.Fill(new Rect(0, 0, Screen.width, Screen.height), Palette.Ground);
-            GUI.matrix = ViewportLayout.GuiMatrix;
-
-            if (background != null)
-            {
-                GUI.DrawTexture(new Rect(0, 0, 1280, 720), background, ScaleMode.ScaleAndCrop);
-                skin.Fill(new Rect(0, 0, 1280, 720), new Color(0.08f, 0.05f, 0.03f, 0.78f));
-            }
-
-            float x = 230, w = 820;
-            skin.Text(new Rect(x, 36, 300, 48), "랭킹", 44, Palette.Cream, TextAnchor.MiddleLeft);
-            DrawTabs(new Rect(x + w - 176, 38, 176, 44));
-            DrawTop3(x, w);
-            DrawRows(x, w);
-            DrawMine(x, w);
-            DrawButtons();
-
+            skin.Fill(new Rect(0, 0, Screen.width, Screen.height), Palette.A(Palette.Ground, 0.9f));
             GUI.matrix = oldMatrix;
 
-            // keep clicks from reaching the game UI underneath
-            if (Event.current.type == EventType.MouseDown || Event.current.type == EventType.MouseUp) Event.current.Use();
+            float x = 230, w = 820;
+            if (resultMode)
+            {
+                bool newBest = data != null && data.LastNewBest;
+                skin.Text(new Rect(x, 30, 500, 52), Dist(session.Score.Distance), 44, Palette.Cream, TextAnchor.MiddleLeft);
+                if (newBest) skin.Text(new Rect(x + 230, 30, 260, 52), "최고 기록 갱신!", 18, Palette.MeNote, TextAnchor.MiddleLeft, false, true);
+                skin.Text(new Rect(x, 78, 600, 22), summary, 15, Palette.Sand, TextAnchor.MiddleLeft, false, true);
+            }
+            else skin.Text(new Rect(x, 36, 300, 48), "랭킹", 44, Palette.Cream, TextAnchor.MiddleLeft);
+            DrawTabs(data, new Rect(x + w - 176, 38, 176, 44));
+            DrawTop3(x, w);
+            DrawRows(x, w);
+            DrawMine(data, x, w);
+
+            if (secondary == null)
+            {
+                if (skin.Button(new Rect(540, 606, 200, 56), primaryLabel, Palette.A(Palette.Ground, 0.9f), Palette.Wood, Palette.Cream, 22)) primary?.Invoke();
+                return;
+            }
+            if (skin.Button(new Rect(434, 606, 200, 56), primaryLabel, Palette.Gold, Color.clear, Palette.Outline, 22)) primary?.Invoke();
+            if (skin.Button(new Rect(646, 606, 200, 56), secondaryLabel, Palette.A(Palette.Ground, 0.9f), Palette.Wood, Palette.Cream, 22)) secondary.Invoke();
         }
 
-        void DrawTabs(Rect r)
+        void DrawTabs(IHudData data, Rect r)
         {
             skin.Box(r, Palette.Panel);
             var all = new Rect(r.x + 4, r.y + 4, 84, 36);
             var today = new Rect(r.x + 88, r.y + 4, 84, 36);
-            if (Tab(all, "전체", !todayOnly) && demo == null) { todayOnly = false; Reload(); }
-            if (Tab(today, "오늘", todayOnly) && demo == null) { todayOnly = true; Reload(); }
+            if (Tab(all, "전체", !todayOnly)) { todayOnly = false; Reload(data); }
+            if (Tab(today, "오늘", todayOnly)) { todayOnly = true; Reload(data); }
         }
 
         bool Tab(Rect r, string label, bool on)
@@ -150,11 +109,11 @@ namespace Muhanok.Presentation
                 skin.BorderBox(r, Palette.A(Palette.Panel, 0.95f), rankColor[rank], 2);
                 float cy = r.center.y;
                 skin.Text(new Rect(r.x, cy - 54, r.width, 34), (rank + 1).ToString(), 30, rankColor[rank], TextAnchor.MiddleCenter);
-                skin.Text(new Rect(r.x, cy - 16, r.width, 24), list[rank].name, 17, Palette.Cream, TextAnchor.MiddleCenter, false, true);
-                skin.Text(new Rect(r.x, cy + 12, r.width, 34), Dist(list[rank].meters), 28, Palette.Cream, TextAnchor.MiddleCenter);
+                skin.Text(new Rect(r.x, cy - 16, r.width, 24), list[rank].Name, 17, Palette.Cream, TextAnchor.MiddleCenter, false, true);
+                skin.Text(new Rect(r.x, cy + 12, r.width, 34), Dist(list[rank].Distance), 28, Palette.Cream, TextAnchor.MiddleCenter);
             }
             if (list.Count == 0)
-                skin.Text(new Rect(x, 160, w, 60), "아직 기록이 없어요. 첫 기록을 남겨 보세요!", 18, Palette.Sand, TextAnchor.MiddleCenter, false, true);
+                skin.Text(new Rect(x, 160, w, 60), todayOnly ? "오늘은 아직 기록이 없어요. 첫 기록을 남겨 보세요!" : "아직 기록이 없어요. 첫 기록을 남겨 보세요!", 18, Palette.Sand, TextAnchor.MiddleCenter, false, true);
         }
 
         void DrawRows(float x, float w)
@@ -165,19 +124,20 @@ namespace Muhanok.Presentation
                 if (rank >= list.Count) break;
                 var r = new Rect(x, 278 + i * 48, w, 42);
                 skin.BorderBox(r, Palette.A(Palette.Panel, 0.92f), Palette.WoodDim, 2);
-                Columns(r, rank + 1, list[rank].name, Dist(list[rank].meters), 18, 20, Palette.Muted, Palette.Cream);
+                Columns(r, rank + 1, list[rank].Name, Dist(list[rank].Distance), 18, 20, Palette.Muted, Palette.Cream);
             }
         }
 
-        void DrawMine(float x, float w)
+        void DrawMine(IHudData data, float x, float w)
         {
-            int me = myId != 0 ? list.FindIndex(r => r.id == myId) : -1;
+            int me = mine != null ? list.IndexOf(mine) : -1;
             if (me < 0) return;
             var row = new Rect(x, 530, w, 54);
             float pulse = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 4f);
             skin.BorderBox(row, Palette.MeFill, Color.Lerp(Palette.Gold, Palette.Cream, pulse * 0.35f), 2);
-            string name = "나" + (newBest ? "   <size=13><color=" + Palette.Hex(Palette.MeNote) + ">최고 기록 갱신!</color></size>" : "");
-            Columns(row, me + 1, name, Dist(list[me].meters), 20, 24, Palette.Gold, Palette.Gold);
+            // Developer mode has a name per run; otherwise every row is this PC's player, so the latest run reads "나".
+            string name = data != null && data.DeveloperMode ? mine.Name : "나";
+            Columns(row, me + 1, name, Dist(mine.Distance), 20, 24, Palette.Gold, Palette.Gold);
         }
 
         void Columns(Rect r, int rank, string name, string dist, int rankSize, int distSize, Color rankColor, Color distColor)
@@ -185,20 +145,6 @@ namespace Muhanok.Presentation
             skin.Text(new Rect(r.x + 20, r.y, 60, r.height), rank.ToString(), rankSize, rankColor, TextAnchor.MiddleLeft);
             skin.Text(new Rect(r.x + 84, r.y, r.width - 260, r.height), name, 16, Palette.Cream, TextAnchor.MiddleLeft, false, true);
             skin.Text(new Rect(r.xMax - 180, r.y, 160, r.height), dist, distSize, distColor, TextAnchor.MiddleRight);
-        }
-
-        void DrawButtons()
-        {
-            if (skin.Button(new Rect(434, 606, 200, 56), "다시 하기", Palette.Gold, Color.clear, Palette.Outline, 22))
-            {
-                Close();
-                onRetry.Invoke();
-            }
-            if (skin.Button(new Rect(646, 606, 200, 56), "메인으로", Palette.A(Palette.Ground, 0.9f), Palette.Wood, Palette.Cream, 22))
-            {
-                Close();
-                onMain.Invoke();
-            }
         }
     }
 }
