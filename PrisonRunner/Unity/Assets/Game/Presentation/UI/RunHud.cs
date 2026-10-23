@@ -40,7 +40,7 @@ namespace Muhanok.Presentation
         {
             bool rest = session.Resting;
             var rect = new Rect(440, 26, 400, 34);
-            skin.Card(rect, new Color(.035f, .045f, .065f, .85f));
+            skin.Panel(rect, .85f);
             float seconds = session.PhaseRemainingSeconds;
             GUI.color = rest ? new Color(.3f, .85f, .5f) : new Color(1f, .45f, .25f);
             GUI.DrawTexture(new Rect(rect.x + 6, rect.yMax - 7, (rect.width - 12) * Mathf.Clamp01(seconds / (rest ? session.Config.RestSeconds : session.Config.SprintSeconds)), 3), Texture2D.whiteTexture);
@@ -69,7 +69,7 @@ namespace Muhanok.Presentation
                 bool calibrating = data.PoseStatus == PoseStatus.Calibrating || data.PoseStatus == PoseStatus.Searching;
                 GUI.color = new Color(1, 1, 1, Mathf.Clamp01(start * 2));
                 var rect = new Rect(340, 222, 600, 120);
-                skin.Card(rect, new Color(.02f, .03f, .05f, .75f));
+                skin.Panel(rect, .75f);
                 GUI.color = new Color(1, .82f, .3f, Mathf.Clamp01(start * 2));
                 GUI.Label(rect, calibrating ? "바르게 서 주세요" : start > 1f ? "준비!" : "출발!", skin.Centered(56, FontStyle.Bold));
                 GUI.color = Color.white;
@@ -79,18 +79,18 @@ namespace Muhanok.Presentation
         private void DrawCards(RunSession session, ChunkSpawner map, Action pause)
         {
             // Distance and area are shown by the progress meter and route bar.
-            skin.Card(new Rect(24, 24, 230, 65), new Color(.035f, .045f, .065f, .88f));
+            skin.Panel(new Rect(24, 24, 230, 65), .88f);
             GUI.color = Color.white; GUI.DrawTexture(new Rect(39, 32, 49, 49), skin.CoinIcon);
             GUI.color = Color.white; GUI.Label(new Rect(123, 34, 120, 45), coins.Get(session.Score.Coins, value => value.ToString()), skin.Style(34, FontStyle.Bold));
             if (session.Workout.WeightKg.HasValue)
             {
-                skin.Card(new Rect(24, 100, 230, 50), new Color(.035f, .045f, .065f, .88f));
+                skin.Panel(new Rect(24, 100, 230, 50), .88f);
                 GUI.Label(new Rect(38, 113, 220, 30), kcal.Get((long)Math.Round(session.Workout.EstimatedKcal * 10), value => "예상  " + (value / 10.0).ToString("F1") + " kcal"), skin.Small);
             }
             if (session.Runner.Riding)
             {
                 GUI.Label(new Rect(950, 32, 220, 35), "수레 · 좌우 균형", skin.Small);
-                GUI.color = new Color(.1f, .12f, .17f); GUI.DrawTexture(new Rect(950, 71, 220, 12), Texture2D.whiteTexture);
+                GUI.color = Palette.Track; GUI.DrawTexture(new Rect(950, 71, 220, 12), Texture2D.whiteTexture);
                 GUI.color = new Color(1, .72f, .12f); GUI.DrawTexture(new Rect(950, 71, 220 * RouteSurface.CartProgress(session.Runner.Z), 12), Texture2D.whiteTexture);
             }
             else
@@ -99,7 +99,7 @@ namespace Muhanok.Presentation
                 GUI.Label(new Rect(935, 36, 242, 38), StatusText(session), skin.Style(17, FontStyle.Bold));
             }
             GUI.color = Color.white;
-            skin.Card(new Rect(24, 162, 230, 44), new Color(.035f, .045f, .065f, .88f));
+            skin.Panel(new Rect(24, 162, 230, 44), .88f);
             GUI.Label(new Rect(38, 171, 210, 30), speed.Get((long)Math.Round(session.CurrentSpeed * 10), value => "속도  " + (value / 10.0).ToString("F1") + " m/s"), skin.Small);
             DrawActionCue(ActionCuePresenter.Find(session, map));
             if (skin.FlatButton(new Rect(1190, 23, 66, 64), session.Paused ? "▶" : "Ⅱ", false)) pause?.Invoke();
@@ -113,7 +113,7 @@ namespace Muhanok.Presentation
         private void DrawActionCue(string cue)
         {
             if (cue == null) return;
-            skin.Card(new Rect(415, 548, 450, 54), new Color(.035f, .045f, .065f, .83f));
+            skin.Panel(new Rect(415, 548, 450, 54), .83f);
             GUI.color = Color.white; GUI.Label(new Rect(415, 553, 450, 45), cue, skin.Centered(23, FontStyle.Bold));
         }
     }

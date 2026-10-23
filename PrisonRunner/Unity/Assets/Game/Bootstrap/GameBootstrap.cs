@@ -57,7 +57,7 @@ namespace Muhanok.Bootstrap
             { Debug.LogError("GameScene requires content references. Run Muhanok/Build GameScene."); enabled = false; return; }
             keyboard = new KeyboardGameInput(); poseInput = new PoseGameInput(); router = new InputRouter(Session, keyboard, poseInput);
             Pose = new PoseTracker(poseInput, Settings != null ? Settings.Camera : null, Settings != null ? Settings.Motion : null, () => Session.Runner.Lane, () => Session.Runner.Riding);
-            Store = new PlayerProgressStore();
+            Store = new PlayerProgressStore(DataRoot());
             player = Store.Profile.Clone();
             Hero = CreateActor("CHR_Monkey_Prisoner", MonkeyPrefab);
             guard = CreateActor("CHR_Police_Officer", PolicePrefab);
@@ -255,10 +255,21 @@ namespace Muhanok.Bootstrap
             if (KeyboardGameInput.DeveloperTogglePressed && Session.Flow.State == GameFlowState.TitleIdle) SetDeveloperMode(!userSettings.DeveloperMode);
             if (KeyboardGameInput.ClearRankingPressed && userSettings.DeveloperMode) { Store.ClearToday(); Debug.Log("Today's ranking cleared."); }
         }
-        // Developer (exhibition) mode: per-run names and every item unlocked. Switching it starts from a clean player.
-        private void SetDeveloperMode(bool on)
+        internal HUDPresenter Hud => hud;
+        // Development builds can keep player data in another folder (--muhanok-data <dir>) for captures and tests.
+        private static string DataRoot()
         {
-            userSettings.DeveloperMode = on; ApplySettings(true);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            var args = System.Environment.GetCommandLineArgs(); int at = System.Array.IndexOf(args, "--muhanok-data");
+            if (at >= 0 && at + 1 < args.Length) return args[at + 1];
+#endif
+            return null;
+        }
+        // Developer (exhibition) mode: per-run names and every item unlocked. Switching it starts from a clean player.
+        internal void SetDeveloperMode(bool on, bool save = true)
+        {
+            userSettings.DeveloperMode = on; Store.Wallet.UnlockAll = on;
+            if (save) UserSettingsStore.Save(userSettings);
             player = on ? new PlayerProfile { Style = Store.Profile.Style } : Store.Profile.Clone();
             if (hud.MenuOpen) hud.OpenMainMenu();
             Debug.Log("Developer mode " + (on ? "on" : "off"));

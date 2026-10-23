@@ -40,8 +40,8 @@ namespace Muhanok.Presentation
                 skin.BorderBox(r, Palette.A(Palette.Panel, 0.95f), owned ? Palette.Gold : Palette.Wood, 2);
                 skin.Circle(new Rect(r.center.x - 48, r.y + 34, 96, 96), Palette.A(Accent(item.Kind), 0.9f));
                 skin.Text(new Rect(r.x, r.y + 150, r.width, 36), item.Name, 28, Palette.Cream, TextAnchor.MiddleCenter);
-                skin.Text(new Rect(r.x + 20, r.y + 196, r.width - 40, 24), item.Description, 14, Palette.Sand, TextAnchor.MiddleCenter, false, true);
-                skin.Text(new Rect(r.x, r.y + 226, r.width, 24), item.Seconds.ToString("0", Num) + "초 지속", 14, Palette.Muted, TextAnchor.MiddleCenter, false, true);
+                skin.Text(new Rect(r.x + 20, r.y + 196, r.width - 40, 24), item.Description, 16, Palette.Sand, TextAnchor.MiddleCenter, false, true);
+                skin.Text(new Rect(r.x, r.y + 226, r.width, 24), item.Seconds.ToString("0", Num) + "초 지속", 16, Palette.Sand, TextAnchor.MiddleCenter, false, true);
                 var button = new Rect(r.x + 24, r.yMax - 82, r.width - 48, 56);
                 if (owned)
                 {

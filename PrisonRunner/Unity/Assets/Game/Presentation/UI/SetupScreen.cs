@@ -23,8 +23,8 @@ namespace Muhanok.Presentation
         public void Draw(IHudData data, Action<PlayerProfile> beginRun, Action back, Action openSettings = null)
         {
             bool perRun = data != null && data.DeveloperMode;
-            skin.Card(new Rect(0, 0, 1280, 720), new Color(.025f, .035f, .06f, .82f));
-            skin.Card(new Rect(150, 70, 980, 590), new Color(.055f, .075f, .11f, .97f));
+            skin.Card(new Rect(0, 0, 1280, 720), Palette.A(Palette.Ground, .82f));
+            skin.Panel(new Rect(150, 70, 980, 590), .97f);
             GUI.color = new Color(1, .78f, .32f); GUI.Label(new Rect(195, 92, 500, 50), "탈출 준비", skin.Style(36, FontStyle.Bold));
             if (openSettings != null && skin.FlatButton(new Rect(950, 92, 140, 44), "설정", false)) openSettings();
             if (back != null && skin.FlatButton(new Rect(800, 92, 140, 44), "뒤로", false)) back();
@@ -32,14 +32,14 @@ namespace Muhanok.Presentation
             if (perRun)
             {
                 GUI.Label(new Rect(195, 150, 200, 34), "이름 (순위표)", skin.Label);
-                GUI.SetNextControlName("MuhanokName"); name = GUI.TextField(new Rect(195, 186, 400, 50), name, 10, skin.Input);
+                skin.Panel(new Rect(195, 186, 400, 50), 1f); GUI.SetNextControlName("MuhanokName"); name = GUI.TextField(new Rect(195, 186, 400, 50), name, 10, skin.Input);
                 GUI.Label(new Rect(195, 246, 260, 34), "몸무게 (선택)", skin.Label);
-                GUI.SetNextControlName("MuhanokWeight"); weightText = GUI.TextField(new Rect(195, 282, 300, 50), weightText, 7, skin.Input);
+                skin.Panel(new Rect(195, 282, 300, 50), 1f); GUI.SetNextControlName("MuhanokWeight"); weightText = GUI.TextField(new Rect(195, 282, 300, 50), weightText, 7, skin.Input);
                 GUI.Label(new Rect(510, 289, 70, 40), "kg", skin.Label);
             }
             else
             {
-                skin.Card(new Rect(195, 150, 400, 182), new Color(.08f, .1f, .14f, .95f));
+                skin.Panel(new Rect(195, 150, 400, 182), .95f);
                 GUI.Label(new Rect(215, 166, 360, 40), data?.SavedProfile.DisplayName ?? "플레이어", skin.Style(30, FontStyle.Bold));
                 GUI.Label(new Rect(215, 214, 360, 34), string.IsNullOrWhiteSpace(weightText) ? "몸무게 미입력 · 칼로리 계산 안 함" : "몸무게 " + weightText + " kg", skin.Small);
                 GUI.color = new Color(1, 1, 1, .7f); GUI.Label(new Rect(215, 280, 360, 34), "이름과 몸무게는 메인 메뉴 > 프로필에서 바꿉니다.", skin.Style(15, FontStyle.Normal)); GUI.color = Color.white;
@@ -66,8 +66,8 @@ namespace Muhanok.Presentation
         }
         private bool Choice(Rect rect, string text, bool selected)
         {
-            skin.Card(rect, selected ? new Color(1, .76f, .23f) : new Color(.12f, .16f, .22f));
-            GUI.color = selected ? new Color(.15f, .09f, .025f) : Color.white;
+            skin.Card(rect, selected ? Palette.Gold : Palette.Panel);
+            GUI.color = selected ? Palette.Outline : Palette.Cream;
             bool pressed = GUI.Button(rect, GUIContent.none, GUIStyle.none);
             GUI.Label(rect, text, skin.Centered(22, FontStyle.Bold)); GUI.color = Color.white;
             return pressed;
@@ -78,9 +78,9 @@ namespace Muhanok.Presentation
             : "A/D 이동, Space 점프, S 숙이기, W 무릎 들기.";
         private void KeyboardGuide(Rect area)
         {
-            skin.Card(area, new Color(.02f, .03f, .05f, .9f));
+            skin.Panel(area, .9f);
             string[] lines = { "A / ←   왼쪽", "D / →   오른쪽", "Space   점프", "S / ↓   숙이기 (누르고 있기)", "W / ↑   무릎 들기 (계단)" };
-            for (int i = 0; i < lines.Length; i++) GUI.Label(new Rect(area.x + 40, area.y + 40 + i * 52, area.width - 80, 40), lines[i], skin.Label);
+            for (int i = 0; i < lines.Length; i++) GUI.Label(new Rect(area.x + 40, area.y + 40 + i * 52, area.width - 80, 40), lines[i], skin.Style(25, FontStyle.Normal));
         }
     }
 }
