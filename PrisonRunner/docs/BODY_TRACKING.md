@@ -1,6 +1,6 @@
-# 몸동작 인식과 전시 기능 (2026-10-10)
+# 몸동작 인식과 전시 기능
 
-브랜치 `feature/body-tracking-gameplay`의 내용입니다. Python PoseServer를 없애고 웹캠 인식을 Unity 안에서 처리합니다.
+웹캠 인식을 Python 없이 Unity 안에서 처리합니다 (2026-10-10에 Python PoseServer를 대체).
 
 ## 구조
 

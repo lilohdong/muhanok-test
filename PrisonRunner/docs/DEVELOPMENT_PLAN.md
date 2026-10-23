@@ -49,8 +49,8 @@ Unity의 캐릭터가 반응하는
 
 기본 Chunk:
 
+Mine
 PrisonCorridor
-CellBlock
 PrisonYard
 
 완료 기준:
@@ -61,7 +61,8 @@ PrisonYard
 
 # Phase 3 - Pose Detection
 
-Python + MediaPipe를 사용한다.
+Unity Inference Engine에서 BlazePose(검출기 + 랜드마크)를 실행한다.
+(초기에는 Python + MediaPipe PoseServer를 썼으나 2026-10-10에 Unity 내부 추론으로 교체했다.)
 
 구현:
 
@@ -81,18 +82,18 @@ Threshold Config
 
 완료 기준:
 
-Unity 없이 Python Console에서
-Action이 안정적으로 출력된다.
+MotionClassifier가 Unity 없이 EditMode 테스트로
+Action을 안정적으로 판정한다.
 
 ---
 
 # Phase 4 - Unity Pose 연결
 
-WebSocket으로 연결한다.
-
-PoseServer
+BlazePoseEstimator
 ↓
-PoseInputProvider
+PoseTracker / MotionClassifier
+↓
+PoseGameInput
 ↓
 IGameInput
 ↓

@@ -42,8 +42,6 @@ build/
 *.log
 Tools/BlenderDownloads/
 Tools/BlenderRuntime/
-Tools/DocumentRuntime/
-docs/document-qa/
 
 # Local distribution staging and backup files
 *.blend1
