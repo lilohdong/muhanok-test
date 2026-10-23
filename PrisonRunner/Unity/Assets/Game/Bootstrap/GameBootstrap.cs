@@ -331,6 +331,7 @@ namespace Muhanok.Bootstrap
         DailyRanking IHudData.Today => Exhibition.Today;
         RankingEntry IHudData.LastEntry => lastEntry;
         int IHudData.LastRank => lastRank;
+        float IHudData.BestDistance => save.BestDistance;
         public float StartBanner => Session.Flow.State == GameFlowState.Running ? Mathf.Max(0, 2.2f - (Time.realtimeSinceStartup - runStartedAt)) : 0;
         float IHudData.CaughtFlash => Session.Flow.State == GameFlowState.Caught ? Mathf.Clamp01(1 - (Time.realtimeSinceStartup - caughtAt) / .6f) : 0;
         void IHudData.PreviewStyle(PlayStyle style) { visitor.Style = style; Pose.SetStyle(style); }

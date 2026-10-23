@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace MuhanokOverlay
+namespace Muhanok.Presentation
 {
     [Serializable]
     public class LeaderboardRecord

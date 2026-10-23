@@ -3,7 +3,7 @@ using System.Globalization;
 using UnityEngine;
 using UnityEngine.Events;
 
-namespace MuhanokOverlay
+namespace Muhanok.Presentation
 {
     public class LeaderboardScreen : MonoBehaviour
     {
@@ -100,7 +100,7 @@ namespace MuhanokOverlay
             var oldMatrix = GUI.matrix;
             GUI.matrix = Matrix4x4.identity;
             skin.Fill(new Rect(0, 0, Screen.width, Screen.height), Palette.Ground);
-            GUI.matrix = Screen720.Matrix;
+            GUI.matrix = ViewportLayout.GuiMatrix;
 
             if (background != null)
             {

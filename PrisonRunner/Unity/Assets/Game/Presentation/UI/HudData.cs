@@ -22,6 +22,7 @@ namespace Muhanok.Presentation
         DailyRanking Today { get; }
         RankingEntry LastEntry { get; }
         int LastRank { get; }
+        float BestDistance { get; }
         float StartBanner { get; }
         float CaughtFlash { get; }
         void PreviewStyle(PlayStyle style);

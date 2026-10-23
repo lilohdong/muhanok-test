@@ -28,6 +28,7 @@ namespace Muhanok.Presentation
         public float LoadingProgress { get; set; }
         private float revealRemaining;
         private HudSkin skin;
+        private OverlaySkin overlaySkin;
         private TitleScreen title;
         private SetupScreen setup;
         private LoadingScreen loading;
@@ -38,8 +39,9 @@ namespace Muhanok.Presentation
         {
             session = run; retry = again;
             skin = new HudSkin();
+            overlaySkin = new OverlaySkin(Resources.Load<Font>("MuhanokUI/BlackHanSans-Regular"), null);
             title = new TitleScreen(skin); setup = new SetupScreen(skin); loading = new LoadingScreen(skin);
-            runHud = new RunHud(skin); pause = new PauseScreen(skin); result = new ResultScreen(skin);
+            runHud = new RunHud(skin, new ProgressHud(overlaySkin)); pause = new PauseScreen(skin); result = new ResultScreen(skin);
         }
         public void OpenSetup() { SetupOpen = true; setup.Open(Data); }
         public void CloseSetup() { SetupOpen = false; Loading = false; revealRemaining = 0; }
@@ -64,6 +66,6 @@ namespace Muhanok.Presentation
             else if (state == GameFlowState.Result) result.Draw(session, Data, retry, NextVisitor);
             GUI.color = Color.white; GUI.matrix = old;
         }
-        private void OnDestroy() { skin?.Dispose(); }
+        private void OnDestroy() { skin?.Dispose(); overlaySkin?.Dispose(); }
     }
 }

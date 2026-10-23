@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace MuhanokOverlay
+namespace Muhanok.Presentation
 {
-    public static class Palette
+    internal static class Palette
     {
         public static readonly Color Ground = new Color32(0x1E, 0x14, 0x0E, 0xFF);
         public static readonly Color Panel = new Color32(0x2B, 0x1D, 0x14, 0xFF);
@@ -26,22 +26,8 @@ namespace MuhanokOverlay
         public static string Hex(Color c) { return "#" + ColorUtility.ToHtmlStringRGB(c); }
     }
 
-    // 1280x720 virtual screen, letterboxed like the main game
-    public static class Screen720
-    {
-        public static Matrix4x4 Matrix
-        {
-            get
-            {
-                float scale = Mathf.Min(Screen.width / 1280f, Screen.height / 720f);
-                float x = (Screen.width - 1280f * scale) * 0.5f;
-                float y = (Screen.height - 720f * scale) * 0.5f;
-                return Matrix4x4.TRS(new Vector3(x, y, 0), Quaternion.identity, Vector3.one * scale);
-            }
-        }
-    }
-
-    public sealed class OverlaySkin
+    // Draws on the same 1280x720 letterboxed screen as the rest of the HUD (ViewportLayout.GuiMatrix).
+    internal sealed class OverlaySkin
     {
         readonly Font titleFont, bodyFont, osFont;
         readonly Dictionary<int, GUIStyle> styles = new Dictionary<int, GUIStyle>();
