@@ -3,7 +3,7 @@
 ## 현재 명세
 - 현재 상태와 남은 일은 docs/PROGRESS.md, 문서 목록은 docs/README.md다. 버전별 과거 기록은 git 히스토리에 있다.
 - 기획서는 docs/무한옥_화면별_게임기획서_V13.docx다. V13은 거리·속도 수치를 미정으로 둔 기획 문서이며 실제 수치는 GameSettings.asset을 따른다.
-- GameScene 하나만 둔다. 흐름은 Title → 관람객 정보(이름·몸무게·플레이 방식) → LoadingIntro → Running → Caught → Result → 다시 하기/다음 관람객이다. Scene reload 금지.
+- GameScene 하나만 둔다. 흐름은 Title → 메인 메뉴 → (첫 실행 프로필) → 탈출 준비 → LoadingIntro → Running → Caught → Result(랭킹) → 다시 하기/메인으로다. Scene reload 금지. 화면·플레이어 데이터·개발자 모드는 docs/GAME_FLOW_UI.md.
 - 경로는 광산 → 전용 수레 → 계단 → 내려오는 문 아래 슬라이드 → 감옥 복도 → 사육장이다. 본편 1인칭, 수레에서만 후방 3인칭. 3 lane X -2.2 / 0 / +2.2, 24m chunk, pooling.
 - 고체 장애물은 한 번 충돌하면 종료한다. 바나나·물웅덩이는 감속만 하고, 바나나 누적 2회는 추격 후 잡힌다. 수레에는 일반 장애물이 없고 철로 붕괴를 반대쪽 기울이기로 피한다. 계단 하이니를 점프로 대체하지 않는다.
 - 첫 바퀴는 9→17m/s 점진 가속(docs/MAP_EXERCISES_SPEED.md), 이후 휴식/질주 인터벌이다. 운동 장애물만 재배치할 때 MuhanokGameplayUpgrade.Apply, 전체 맵·아트 재생성은 MuhanokVisualPolish.UpgradeV10을 사용한다(docs/ART_V10.md).
