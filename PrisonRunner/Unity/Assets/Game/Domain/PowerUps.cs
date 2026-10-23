@@ -40,25 +40,25 @@ namespace Muhanok.Domain
         public void Reset() { Array.Clear(remaining, 0, remaining.Length); Collected = 0; }
     }
 
-    // Coins from every visitor go into one exhibition pool that unlocks items for everybody.
-    public sealed class ExhibitionProgress
+    // The player's coins and the items bought with them in the shop. Developer mode unlocks everything.
+    public sealed class PlayerWallet
     {
-        public int CoinPool { get; private set; }
+        public int Coins { get; private set; }
         public bool UnlockAll { get; set; }
         private readonly HashSet<ItemKind> unlocked = new HashSet<ItemKind>();
         public IEnumerable<ItemKind> Unlocked => unlocked;
         public bool IsUnlocked(ItemKind kind) => UnlockAll || unlocked.Contains(kind);
-        public void Deposit(int coins) { CoinPool += Math.Max(0, coins); }
+        public void Deposit(int coins) { Coins += Math.Max(0, coins); }
         public bool TryUnlock(ItemKind kind)
         {
             if (IsUnlocked(kind)) return false;
             int cost = ItemCatalog.Get(kind).UnlockCost;
-            if (CoinPool < cost) return false;
-            CoinPool -= cost; unlocked.Add(kind); return true;
+            if (Coins < cost) return false;
+            Coins -= cost; unlocked.Add(kind); return true;
         }
-        public void Restore(int pool, IEnumerable<ItemKind> kinds)
+        public void Restore(int coins, IEnumerable<ItemKind> kinds)
         {
-            CoinPool = Math.Max(0, pool); unlocked.Clear();
+            Coins = Math.Max(0, coins); unlocked.Clear();
             if (kinds != null) foreach (var kind in kinds) unlocked.Add(kind);
         }
         public List<ItemKind> Available()

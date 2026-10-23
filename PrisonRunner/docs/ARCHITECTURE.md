@@ -30,15 +30,15 @@ KeyboardGameInput ┘
 | 폴더 / 어셈블리 | 역할 | UnityEngine 의존 |
 | --- | --- | --- |
 | `Core/` (Muhanok.LegacyCore) | 레인 규칙 `LaneRules` | 없음 |
-| `Domain/` (Muhanok.Domain) | 게임 규칙: `RunRules`(흐름·속도·충돌·점수), `MotionClassifier`(관절 → 명령), `WorkoutEstimate`(칼로리), `Ranking`, `PowerUps`, `RoutePlan` | 없음 |
+| `Domain/` (Muhanok.Domain) | 게임 규칙: `RunRules`(흐름·속도·충돌·점수), `MotionClassifier`(관절 → 명령), `WorkoutEstimate`(칼로리), `Ranking`(프로필·랭킹·통계), `PowerUps`(아이템·지갑), `RoutePlan` | 없음 |
 | `Application/` (Muhanok.Application) | `IGameInput`, `InputRouter` | 없음 |
-| `Infrastructure/` (Muhanok.Infrastructure) | 키보드 입력, 포즈 추적·명령 변환(`Pose/PoseInput.cs`), 저장(`SaveRepository`, `UserSettingsStore`, `ExhibitionStore`) | 있음 |
+| `Infrastructure/` (Muhanok.Infrastructure) | 키보드 입력, 포즈 추적·명령 변환(`Pose/PoseInput.cs`), 저장(`PlayerProgressStore`: 프로필·지갑·기록, `UserSettingsStore`: 설정) | 있음 |
 | `PoseInference/` (Muhanok.PoseInference) | 웹캠 + BlazePose 추론 `BlazePoseEstimator`. `com.unity.ai.inference`가 없으면 컴파일에서 빠진다 | 있음 |
 | `Presentation/` (Muhanok.Presentation) | 맵·플레이어·카메라·UI·오디오 MonoBehaviour | 있음 |
 | `Bootstrap/` (Muhanok.Bootstrap) | `GameBootstrap`: 계층 조립, 씬 진입점 | 있음 |
 | `Content/` | 프리팹, 애니메이션, 재질, `GameSettings.asset`, 포즈 모델 | — |
 | `Editor/` | 맵·아트 생성기, 빌드·임포트 메뉴 | — |
-| `Tests/` | EditMode(규칙·몸동작·전시), PlayMode(씬·충돌·시각 예산) | — |
+| `Tests/` | EditMode(규칙·몸동작·플레이어 데이터), PlayMode(씬·충돌·시각 예산) | — |
 
 의존 방향은 Presentation/Infrastructure → Application → Domain → Core다.
 Domain은 UnityEngine 없이 유지해서 Unity 없이 테스트할 수 있게 한다.

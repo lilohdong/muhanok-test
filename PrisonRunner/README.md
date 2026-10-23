@@ -9,7 +9,7 @@
 - [문서 목록](docs/README.md), [현재 상태](docs/PROGRESS.md)
 - [게임 아트 V10](docs/ART_V10.md), [실제 게임 캡처](docs/previews/ArtV10/index.html)
 - [맵 운동·가속 기능과 검증](docs/MAP_EXERCISES_SPEED.md)
-- [몸동작 인식·플레이 방식·전시 기능](docs/BODY_TRACKING.md)
+- [화면 흐름·프로필·상점·랭킹](docs/GAME_FLOW_UI.md), [몸동작 인식·플레이 방식](docs/BODY_TRACKING.md)
 - [리소스 출처와 공개 소스 애니메이션](THIRD_PARTY_NOTICES.md)
 
 로컬에서는 `StartGame.cmd` 또는 `Builds/Windows/Muhanok.exe`를 실행합니다. 게임 빌드는 Git 소스 대신 GitHub Releases에서 배포합니다. 실행에는 Unity나 Python이 필요 없습니다. 웹캠 인식은 게임 안에서 처리합니다.

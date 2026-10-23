@@ -23,6 +23,8 @@ namespace Muhanok.Domain
                 || (State == GameFlowState.Running && next == GameFlowState.Caught)
                 || (State == GameFlowState.Caught && next == GameFlowState.Result)
                 || (State == GameFlowState.Result && next == GameFlowState.Retry)
+                // Leaving a run from the pause menu abandons it without a result.
+                || (State == GameFlowState.Running && next == GameFlowState.Retry)
                 || (State == GameFlowState.Retry && next == GameFlowState.TitleIdle);
             if (!valid) return false;
             State = next;

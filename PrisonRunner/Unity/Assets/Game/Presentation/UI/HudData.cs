@@ -6,7 +6,10 @@ namespace Muhanok.Presentation
     // What the screens need from the running game; implemented by the bootstrap.
     public interface IHudData
     {
-        VisitorProfile Visitor { get; }
+        // Who plays the current or next run: the saved profile, or a per-run name in developer mode.
+        PlayerProfile Player { get; }
+        PlayerProfile SavedProfile { get; }
+        bool DeveloperMode { get; }
         Texture CameraTexture { get; }
         PoseFrame PoseFrame { get; }
         PoseStatus PoseStatus { get; }
@@ -18,14 +21,20 @@ namespace Muhanok.Presentation
         float CalibrationProgress { get; }
         float StepsPerMinute { get; }
         bool BodyActive { get; }
-        ExhibitionProgress Progress { get; }
-        DailyRanking Today { get; }
+        PlayerWallet Wallet { get; }
+        Leaderboard Board { get; }
+        PlayerStats Stats { get; }
+        // The run that just finished: its entry, rank among all runs and today, and whether it beat the best distance.
         RankingEntry LastEntry { get; }
         int LastRank { get; }
+        int LastTodayRank { get; }
+        bool LastNewBest { get; }
+        float BestDistance { get; }
         float StartBanner { get; }
         float CaughtFlash { get; }
         void PreviewStyle(PlayStyle style);
         void Unlock(ItemKind kind);
+        void SaveProfile(PlayerProfile profile);
         void Recalibrate();
     }
 
@@ -35,7 +44,7 @@ namespace Muhanok.Presentation
         private static readonly Color Bone = new Color(.3f, 1f, .55f), Joint = new Color(1f, .85f, .2f);
         public static void Draw(HudSkin skin, Rect area, IHudData data, bool showStatus)
         {
-            skin.Card(area, new Color(.02f, .03f, .05f, .9f));
+            skin.Panel(area, .9f);
             var inner = new Rect(area.x + 6, area.y + 6, area.width - 12, area.height - 12);
             var texture = data.CameraTexture;
             var frame = data.PoseFrame;
@@ -99,8 +108,8 @@ namespace Muhanok.Presentation
             string action = data.SecondsSinceJump < .6f ? "점프!" : motion.Crouch ? "숙이기" : motion.HighKnee ? "무릎·팔 들기" : null;
             if (action == null) return;
             var badge = new Rect(area.xMax - 158, area.y + 8, 150, 34);
-            skin.Card(badge, new Color(1f, .76f, .23f, .9f));
-            GUI.color = new Color(.15f, .09f, .025f); GUI.Label(badge, action, skin.Centered(19, FontStyle.Bold)); GUI.color = Color.white;
+            skin.Card(badge, Palette.A(Palette.Gold, .9f));
+            GUI.color = Palette.Outline; GUI.Label(badge, action, skin.Centered(19, FontStyle.Bold)); GUI.color = Color.white;
         }
         private static void Dot(Rect view, float x, float y, float size)
         {

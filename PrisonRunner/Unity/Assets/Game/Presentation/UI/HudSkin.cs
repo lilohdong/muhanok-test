@@ -4,26 +4,49 @@ using UnityEngine;
 namespace Muhanok.Presentation
 {
     // Shared IMGUI resources. Styles are created once inside OnGUI and reused every frame.
+    // Colors and the title font follow the overlay palette (wood and gold); body text keeps the OS font for readability.
     internal sealed class HudSkin
     {
         public readonly Font Font;
+        private readonly Font titleFont;
         private readonly Dictionary<int, GUIStyle> styles = new Dictionary<int, GUIStyle>();
         private readonly Dictionary<int, GUIStyle> centeredStyles = new Dictionary<int, GUIStyle>();
         private GUIStyle button, flatButton, panelStyle, inputStyle;
         private Texture2D panelTexture, coinIcon, distanceIcon;
-        public HudSkin() { Font = Font.CreateDynamicFontFromOSFont(new[] { "Malgun Gothic", "Arial" }, 28); }
+        public HudSkin()
+        {
+            Font = Font.CreateDynamicFontFromOSFont(new[] { "Malgun Gothic", "Arial" }, 28);
+            titleFont = Resources.Load<Font>("MuhanokUI/BlackHanSans-Regular");
+        }
         public GUIStyle Large => Style(74, FontStyle.Bold);
         public GUIStyle Small => Style(20, FontStyle.Normal);
         public GUIStyle Label => Style(25, FontStyle.Bold);
-        public GUIStyle Button => button ??= new GUIStyle(GUI.skin.button) { font = Font, fontSize = 22 };
-        public GUIStyle Input => inputStyle ??= new GUIStyle(GUI.skin.textField) { font = Font, fontSize = 30, alignment = TextAnchor.MiddleLeft };
+        public GUIStyle Button => button ??= new GUIStyle(GUI.skin.button) { font = titleFont != null ? titleFont : Font, fontSize = 22 };
+        public GUIStyle Input => inputStyle ??= InputStyle();
         public Texture2D CoinIcon => coinIcon ??= CreateHudIcon(false);
         public Texture2D DistanceIcon => distanceIcon ??= CreateHudIcon(true);
+        // Bold text uses the title font (it has a single heavy weight, so no synthetic bold).
         public GUIStyle Style(int size, FontStyle weight)
         {
             int key = size * 4 + (int)weight;
             if (!styles.TryGetValue(key, out var style))
-                styles[key] = style = new GUIStyle(GUI.skin.label) { font = Font, fontSize = size, fontStyle = weight, normal = { textColor = Color.white } };
+            {
+                bool title = weight == FontStyle.Bold && titleFont != null;
+                styles[key] = style = new GUIStyle(GUI.skin.label) { font = title ? titleFont : Font, fontSize = size, fontStyle = title ? FontStyle.Normal : weight, normal = { textColor = Color.white } };
+            }
+            return style;
+        }
+        // Wooden frame with a dark fill, like the overlay screens.
+        public void Panel(Rect r, float alpha = .9f)
+        {
+            Card(r, Palette.A(Palette.Wood, alpha));
+            Card(new Rect(r.x + 2, r.y + 2, r.width - 4, r.height - 4), Palette.A(Palette.Ground, alpha));
+        }
+        private GUIStyle InputStyle()
+        {
+            var style = new GUIStyle(GUI.skin.textField) { font = Font, fontSize = 30, alignment = TextAnchor.MiddleLeft, padding = new RectOffset(14, 14, 0, 0) };
+            style.normal.background = style.focused.background = style.hover.background = null;
+            style.normal.textColor = style.focused.textColor = style.hover.textColor = Palette.Cream;
             return style;
         }
         public GUIStyle Centered(int size, FontStyle weight)
@@ -50,30 +73,30 @@ namespace Muhanok.Presentation
             }
             var old = GUI.color; GUI.color = color; GUI.Box(r, GUIContent.none, panelStyle); GUI.color = old;
         }
-        // Main call to action: saturated orange, white bold text with a shadow, brighter on hover and pulsing gently.
+        // Main call to action: gold with dark text, brighter on hover and glowing gently.
         public bool PrimaryButton(Rect rect, string text, int size = 28)
         {
             bool hover = rect.Contains(Event.current.mousePosition);
             float pulse = .5f + .5f * Mathf.Sin(Time.unscaledTime * 3f);
-            Card(new Rect(rect.x - 3, rect.y - 3, rect.width + 6, rect.height + 6), new Color(1f, .85f, .45f, .55f + .35f * pulse));
-            Card(rect, hover ? new Color(1f, .6f, .1f) : new Color(1f, .48f, .02f));
-            Card(new Rect(rect.x + 4, rect.y + 3, rect.width - 8, rect.height * .42f), new Color(1f, 1f, 1f, .18f));
+            Card(new Rect(rect.x - 3, rect.y - 3, rect.width + 6, rect.height + 6), Palette.A(Palette.Gold, .35f + .3f * pulse));
+            Card(rect, hover ? Color.Lerp(Palette.Gold, Color.white, .15f) : Palette.Gold);
             var label = Centered(size, FontStyle.Bold);
-            GUI.color = new Color(.35f, .12f, 0f, .8f); GUI.Label(new Rect(rect.x + 2, rect.y + 2, rect.width, rect.height), text, label);
-            GUI.color = Color.white; GUI.Label(rect, text, label);
+            GUI.color = Palette.Outline; GUI.Label(rect, text, label);
             bool pressed = GUI.Button(rect, GUIContent.none, GUIStyle.none);
             GUI.color = Color.white; return pressed;
         }
+        // Secondary actions: dark fill with a wooden frame; "primary" turns it gold.
         public bool FlatButton(Rect rect, string text, bool primary)
         {
             if (flatButton == null)
             {
                 flatButton = new GUIStyle(Button);
-                foreach (var state in new[] { flatButton.normal, flatButton.hover, flatButton.active, flatButton.focused }) state.background = null;
+                foreach (var state in new[] { flatButton.normal, flatButton.hover, flatButton.active, flatButton.focused }) { state.background = null; state.textColor = Color.white; }
             }
-            GUI.color = primary ? new Color(1, .76f, .23f) : new Color(.12f, .42f, .67f);
-            Card(rect, GUI.color);
-            GUI.color = primary ? new Color(.15f, .09f, .025f) : Color.white;
+            bool hover = rect.Contains(Event.current.mousePosition);
+            if (primary) Card(rect, hover ? Color.Lerp(Palette.Gold, Color.white, .15f) : Palette.Gold);
+            else { Card(rect, Palette.Wood); Card(new Rect(rect.x + 2, rect.y + 2, rect.width - 4, rect.height - 4), hover ? Color.Lerp(Palette.Ground, Color.white, .12f) : Palette.Ground); }
+            GUI.color = primary ? Palette.Outline : Palette.Cream;
             bool pressed = GUI.Button(rect, text, flatButton); GUI.color = Color.white; return pressed;
         }
         public void Dispose()

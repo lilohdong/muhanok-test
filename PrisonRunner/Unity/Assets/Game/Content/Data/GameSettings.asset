@@ -88,7 +88,6 @@ MonoBehaviour:
     DetailDistance: 45
     LightAhead: 55
     LightBehind: 12
-  UnlockAllItems: 1
   ItemChancePerChunk: 0.35
   MusicVolume: 0.35
   EffectsVolume: 0.7

@@ -29,22 +29,22 @@ namespace Muhanok.Bootstrap
         public ChunkSpawner Map { get; private set; }
         public IntroSequenceDirector Intro { get; private set; }
         public PoseTracker Pose { get; private set; }
-        public ExhibitionStore Exhibition { get; private set; }
+        public PlayerProgressStore Store { get; private set; }
         public RunnerView Hero { get; private set; }
         private RunnerView guard;
         private KeyboardGameInput keyboard;
         private PoseGameInput poseInput;
         private InputRouter router;
-        private SaveRepository save;
         private HUDPresenter hud;
         private GameAudio audioPlayer;
         private float caughtTime, runFade, runStartedAt = -10, caughtAt = -10;
         private ParticleSystem dust, hit;
         private bool previousStumble;
-        // The visitor who is playing (or about to). Runs started from the setup screen record today's ranking.
-        private VisitorProfile visitor = new VisitorProfile();
-        private bool visitorRun, bannerSounded, goSounded;
+        // Who is playing (or about to). Runs started from the setup screen are recorded on the leaderboard.
+        private PlayerProfile player = new PlayerProfile();
+        private bool playerRun, bannerSounded, goSounded, lastNewBest;
         private RankingEntry lastEntry;
+        private int lastTodayRank;
         private UserSettings userSettings, settingsDefaults;
         private GraphicsSettingsApplier graphics;
         private SettingsWindow settingsWindow;
@@ -57,15 +57,15 @@ namespace Muhanok.Bootstrap
             { Debug.LogError("GameScene requires content references. Run Muhanok/Build GameScene."); enabled = false; return; }
             keyboard = new KeyboardGameInput(); poseInput = new PoseGameInput(); router = new InputRouter(Session, keyboard, poseInput);
             Pose = new PoseTracker(poseInput, Settings != null ? Settings.Camera : null, Settings != null ? Settings.Motion : null, () => Session.Runner.Lane, () => Session.Runner.Riding);
-            save = new SaveRepository();
-            Exhibition = new ExhibitionStore(null, Settings == null || Settings.UnlockAllItems);
+            Store = new PlayerProgressStore(DataRoot());
+            player = Store.Profile.Clone();
             Hero = CreateActor("CHR_Monkey_Prisoner", MonkeyPrefab);
             guard = CreateActor("CHR_Police_Officer", PolicePrefab);
             gameObject.AddComponent<CartRideView>().Configure(Session,Hero,CartRidePrefab);
             OutputCamera.GetComponent<CinematicFocus>()?.Configure(Session,Hero);
             var mapRoot = new GameObject("ChunkPool"); mapRoot.transform.SetParent(transform, false);
             Map = new ChunkSpawner(ChunkPrefabs, mapRoot.transform, Session, Settings != null ? Settings.Render : new RenderBudget());
-            Map.Decorator = new RuntimeContent(mapRoot.transform, () => Exhibition.Progress.Available(), Settings != null ? Settings.ItemChancePerChunk : .35f);
+            Map.Decorator = new RuntimeContent(mapRoot.transform, () => Store.Wallet.Available(), Settings != null ? Settings.ItemChancePerChunk : .35f);
             CameraRig.Configure(OutputCamera);
             if(OutputCamera.GetComponent<GameViewport>()==null) OutputCamera.gameObject.AddComponent<GameViewport>();
             if (HandsPrefab != null)
@@ -86,12 +86,14 @@ namespace Muhanok.Bootstrap
             Intro.Configure(Session, Hero, guard, CameraRig, cart.transform, tool.transform, bulb, cartAudio, IntroTimeline);
             hud = gameObject.AddComponent<HUDPresenter>();
             hud.Map=Map; hud.Data=this;
-            hud.Configure(Session, RetrySameVisitor);
+            hud.Configure(Session, RetrySamePlayer);
             hud.TitleLogo = TitleLogo;
-            hud.LoadingImage=LoadingImage; hud.BeginRun=StartVisitorRun; hud.PauseRun=TogglePause; hud.NextVisitor=NextVisitor;
+            hud.LoadingImage=LoadingImage; hud.BeginRun=StartPlayerRun; hud.PauseRun=TogglePause; hud.NextPlayer=NextPlayer; hud.ToMenu=ExitToMenu;
+            hud.TextInput=KeyboardGameInput.SetTextInput; hud.Quit=QuitGame;
             audioPlayer = gameObject.AddComponent<GameAudio>();
             audioPlayer.Configure(Session, Settings != null ? Settings.MusicVolume : .35f, Settings != null ? Settings.EffectsVolume : .7f);
             SetupSettings();
+            if (userSettings.DeveloperMode) player = new PlayerProfile { Style = Store.Profile.Style };
             Session.Flow.Changed += StateChanged;
             Session.Flow.Transition(GameFlowState.TitleIdle);
         }
@@ -127,6 +129,7 @@ namespace Muhanok.Bootstrap
             audioPlayer?.SetVolumes(userSettings.MusicVolume, userSettings.EffectsVolume);
             Pose.Configure(userSettings.CameraDevice, userSettings.LiteLandmarkModel, userSettings.LaneSensitivity);
             if (overlay != null) overlay.Visible = userSettings.PerformanceOverlay;
+            Store.Wallet.UnlockAll = userSettings.DeveloperMode;
             if (save) UserSettingsStore.Save(userSettings);
         }
         private RunnerView CreateActor(string id, GameObject prefab)
@@ -146,23 +149,32 @@ namespace Muhanok.Bootstrap
         {
             if (Session.Flow.Transition(GameFlowState.IntroTimeline)) Intro.Begin();
         }
+        public bool MenuOpen=>hud!=null&&hud.MenuOpen;
+        public void OpenMainMenu()
+        {
+            if(Session.Flow.State!=GameFlowState.TitleIdle||hud.Loading) return;
+            hud.OpenMainMenu();
+        }
+        // Straight to the run setup (tests, "다음 플레이어").
         public void OpenStartSetup()
         {
             if(Session.Flow.State!=GameFlowState.TitleIdle||hud.Loading) return;
-            KeyboardGameInput.SetTextInput(true); hud.OpenSetup();
+            hud.OpenSetup();
         }
-        // Direct start (tests, tools): keeps the current play style and does not enter the ranking.
+        // Direct start (tests, tools): keeps the current play style and does not enter the leaderboard.
         public void BeginRun(string weight)
         {
             if(Session.Flow.State!=GameFlowState.TitleIdle||hud.Loading||!Session.Workout.SetWeight(weight)) return;
-            visitorRun=false; Session.Workout.Met=PlayStyleInfo.Met(visitor.Style);
+            playerRun=false; Session.Workout.Met=PlayStyleInfo.Met(player.Style);
             StartCoroutine(PrepareRun(723));
         }
-        // Start from the setup screen: this visitor's run counts for today's ranking.
-        public void StartVisitorRun(VisitorProfile profile)
+        // Start from the setup screen: the run is recorded on the leaderboard. Outside developer mode
+        // the chosen play style becomes the profile's default.
+        public void StartPlayerRun(PlayerProfile profile)
         {
             if(profile==null||Session.Flow.State!=GameFlowState.TitleIdle||hud.Loading||!Session.Workout.SetWeight(profile.Weight)) return;
-            visitor=profile; visitorRun=true; KeyboardGameInput.SetTextInput(false);
+            if(!userSettings.DeveloperMode&&profile.Style!=Store.Profile.Style){var saved=Store.Profile.Clone();saved.Style=profile.Style;Store.SaveProfile(saved);}
+            player=profile; playerRun=true; KeyboardGameInput.SetTextInput(false);
             Session.Workout.Met=PlayStyleInfo.Met(profile.Style);
             Pose.SetStyle(profile.Style);
             StartCoroutine(PrepareRun(Settings != null && Settings.Run.RandomizeLayout ? Random.Range(1, int.MaxValue) : 723));
@@ -239,15 +251,35 @@ namespace Muhanok.Bootstrap
             if (KeyboardGameInput.SettingsPressed) { if (settingsWindow != null && settingsWindow.IsOpen) settingsWindow.Close(true); else OpenSettings(); }
             if (KeyboardGameInput.OverlayPressed) { userSettings.PerformanceOverlay = !userSettings.PerformanceOverlay; ApplySettings(true); }
             if (settingsWindow != null && settingsWindow.IsOpen) return;
-            if (KeyboardGameInput.RecalibratePressed && !hud.SetupOpen) Pose.Recalibrate();
-            if (KeyboardGameInput.ClearRankingPressed) { Exhibition.ClearToday(); Debug.Log("Today's ranking cleared."); }
+            if (KeyboardGameInput.RecalibratePressed && !hud.MenuOpen) Pose.Recalibrate();
+            if (KeyboardGameInput.DeveloperTogglePressed && Session.Flow.State == GameFlowState.TitleIdle) SetDeveloperMode(!userSettings.DeveloperMode);
+            if (KeyboardGameInput.ClearRankingPressed && userSettings.DeveloperMode) { Store.ClearToday(); Debug.Log("Today's ranking cleared."); }
+        }
+        internal HUDPresenter Hud => hud;
+        // Development builds can keep player data in another folder (--muhanok-data <dir>) for captures and tests.
+        private static string DataRoot()
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            var args = System.Environment.GetCommandLineArgs(); int at = System.Array.IndexOf(args, "--muhanok-data");
+            if (at >= 0 && at + 1 < args.Length) return args[at + 1];
+#endif
+            return null;
+        }
+        // Developer (exhibition) mode: per-run names and every item unlocked. Switching it starts from a clean player.
+        internal void SetDeveloperMode(bool on, bool save = true)
+        {
+            userSettings.DeveloperMode = on; Store.Wallet.UnlockAll = on;
+            if (save) UserSettingsStore.Save(userSettings);
+            player = on ? new PlayerProfile { Style = Store.Profile.Style } : Store.Profile.Clone();
+            if (hud.MenuOpen) hud.OpenMainMenu();
+            Debug.Log("Developer mode " + (on ? "on" : "off"));
         }
         public void TickInput()
         {
             keyboard.Poll();
             if(hud.Loading||hud.Revealing||(settingsWindow!=null&&settingsWindow.IsOpen)){keyboard.Clear();poseInput.Clear();return;}
             router.Tick();
-            if (Session.Flow.State == GameFlowState.TitleIdle && !hud.BlocksStart && KeyboardGameInput.StartPressed) OpenStartSetup();
+            if (Session.Flow.State == GameFlowState.TitleIdle && !hud.BlocksStart && KeyboardGameInput.StartPressed) OpenMainMenu();
         }
         private void LateUpdate()
         {
@@ -277,14 +309,19 @@ namespace Muhanok.Bootstrap
                 Time.timeScale = 1;
                 var args=System.Environment.GetCommandLineArgs();
                 bool tooling=System.Array.IndexOf(args,"--muhanok-capture")>=0||System.Array.IndexOf(args,"--muhanok-smoke")>=0;
-                if(!tooling)save.Record(Session.Score.Distance,Session.Score.Score);
-                lastEntry=null; lastRank=0;
-                if(!tooling&&visitorRun)
+                lastEntry=null; lastRank=lastTodayRank=0; lastNewBest=false;
+                if(!tooling&&playerRun)
                 {
-                    lastEntry=new RankingEntry{Name=string.IsNullOrWhiteSpace(visitor.Name)?"관람객 "+(Exhibition.Today.Entries.Count+1):visitor.Name.Trim(),Score=Session.Score.Score,
-                        Distance=Session.Score.Distance,Coins=Session.Score.Coins,Style=PlayStyleInfo.Label(visitor.Style),Ticks=System.DateTime.Now.Ticks};
-                    lastRank=Exhibition.Record(lastEntry);
-                    Exhibition.DepositCoins(Session.Score.Coins);
+                    var now=System.DateTime.Now;
+                    string name=!userSettings.DeveloperMode?Store.Profile.DisplayName
+                        :player.HasName?player.Name.Trim():"플레이어 "+(Store.Board.Day(Leaderboard.DayKey(now)).Count+1);
+                    lastEntry=new RankingEntry{Name=name,Score=Session.Score.Score,Distance=Session.Score.Distance,Coins=Session.Score.Coins,
+                        Style=PlayStyleInfo.Label(player.Style),Ticks=now.Ticks};
+                    lastNewBest=Session.Score.Distance>Store.Stats.BestDistance;
+                    lastRank=Store.Record(lastEntry,Session.Workout.EstimatedKcal);
+                    lastTodayRank=Store.Board.RankOf(lastEntry,true);
+                    // Exhibition runs do not fill this PC's wallet.
+                    if(!userSettings.DeveloperMode) Store.DepositCoins(Session.Score.Coins);
                 }
             }
         }
@@ -298,25 +335,44 @@ namespace Muhanok.Bootstrap
             previousStumble = false; runFade = caughtTime = 0; hud.Fade = 1;
             Session.Flow.Transition(GameFlowState.TitleIdle);
         }
-        // "다시 하기": the same visitor runs again with the same settings.
-        public void RetrySameVisitor()
+        // "다시 하기": the same player runs again with the same settings.
+        public void RetrySamePlayer()
         {
-            bool again = visitorRun; var profile = visitor;
+            bool again = playerRun; var profile = player;
             Retry();
-            if (again) StartVisitorRun(profile);
+            if (again) StartPlayerRun(profile);
         }
-        // "다음 관람객": back to an empty setup screen for the next person.
-        public void NextVisitor()
+        // "다음 플레이어" (developer mode): back to an empty setup screen for the next person.
+        public void NextPlayer()
         {
-            var style = visitor.Style;
+            var style = player.Style;
             Retry();
-            visitor = new VisitorProfile { Style = style == PlayStyle.Keyboard ? PlayStyle.FullBody : style };
-            visitorRun = false; OpenStartSetup();
+            player = new PlayerProfile { Style = style == PlayStyle.Keyboard ? PlayStyle.FullBody : style };
+            playerRun = false; OpenStartSetup();
+        }
+        // "메인으로" from the result or pause screen; a paused run ends without a record.
+        public void ExitToMenu()
+        {
+            if (Session.Paused) { Session.Paused = false; Time.timeScale = 1; }
+            playerRun = false;
+            Retry();
+            if (!userSettings.DeveloperMode) player = Store.Profile.Clone();
+            OpenMainMenu();
+        }
+        private void QuitGame()
+        {
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#else
+            UnityEngine.Application.Quit();
+#endif
         }
         private void OnDestroy() { Time.timeScale=1; graphics?.Dispose(); Pose?.Dispose(); RouteSurface.UsePlan(null); KeyboardGameInput.SetTextInput(false); }
 
         // IHudData
-        VisitorProfile IHudData.Visitor => visitor;
+        PlayerProfile IHudData.Player => player;
+        PlayerProfile IHudData.SavedProfile => Store.Profile;
+        bool IHudData.DeveloperMode => userSettings != null && userSettings.DeveloperMode;
         Texture IHudData.CameraTexture => Pose.CameraTexture;
         PoseFrame IHudData.PoseFrame => Pose.LastFrame;
         PoseStatus IHudData.PoseStatus => Pose.Status;
@@ -327,14 +383,19 @@ namespace Muhanok.Bootstrap
         float IHudData.CalibrationProgress => Pose.CalibrationProgress;
         float IHudData.StepsPerMinute => Pose.StepsPerMinute;
         bool IHudData.BodyActive => Pose.Tracking && Pose.Reading.Active;
-        ExhibitionProgress IHudData.Progress => Exhibition.Progress;
-        DailyRanking IHudData.Today => Exhibition.Today;
+        PlayerWallet IHudData.Wallet => Store.Wallet;
+        Leaderboard IHudData.Board => Store.Board;
+        PlayerStats IHudData.Stats => Store.Stats;
         RankingEntry IHudData.LastEntry => lastEntry;
         int IHudData.LastRank => lastRank;
+        int IHudData.LastTodayRank => lastTodayRank;
+        bool IHudData.LastNewBest => lastNewBest;
+        float IHudData.BestDistance => Store.Stats.BestDistance;
         public float StartBanner => Session.Flow.State == GameFlowState.Running ? Mathf.Max(0, 2.2f - (Time.realtimeSinceStartup - runStartedAt)) : 0;
         float IHudData.CaughtFlash => Session.Flow.State == GameFlowState.Caught ? Mathf.Clamp01(1 - (Time.realtimeSinceStartup - caughtAt) / .6f) : 0;
-        void IHudData.PreviewStyle(PlayStyle style) { visitor.Style = style; Pose.SetStyle(style); }
-        void IHudData.Unlock(ItemKind kind) => Exhibition.Unlock(kind);
+        void IHudData.PreviewStyle(PlayStyle style) { player.Style = style; Pose.SetStyle(style); }
+        void IHudData.Unlock(ItemKind kind) => Store.Unlock(kind);
+        void IHudData.SaveProfile(PlayerProfile profile) { Store.SaveProfile(profile); if (!userSettings.DeveloperMode) player = Store.Profile.Clone(); }
         void IHudData.Recalibrate() => Pose.Recalibrate();
 
         // ISettingsHost

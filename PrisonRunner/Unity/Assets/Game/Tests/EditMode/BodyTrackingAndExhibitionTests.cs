@@ -198,29 +198,54 @@ namespace Muhanok.Tests
             Assert.IsTrue(run.Hit(true)); Assert.AreEqual(GameFlowState.Caught, run.Flow.State);
             var items = new PowerUpState(); items.Activate(ItemKind.Magnet); items.Tick(100); Assert.IsFalse(items.IsActive(ItemKind.Magnet));
         }
-        [Test] public void SharedCoinPoolUnlocksItemsAndUnlockAllOpensEverything()
+        [Test] public void WalletUnlocksItemsAndDeveloperModeOpensEverything()
         {
-            var progress = new ExhibitionProgress(); Assert.IsEmpty(progress.Available());
-            progress.Deposit(40); Assert.IsTrue(progress.TryUnlock(ItemKind.Magnet)); Assert.AreEqual(10, progress.CoinPool);
-            Assert.IsFalse(progress.TryUnlock(ItemKind.Shield)); CollectionAssert.AreEqual(new[] { ItemKind.Magnet }, progress.Available());
-            progress.UnlockAll = true; Assert.AreEqual(ItemCatalog.All.Length, progress.Available().Count);
+            var wallet = new PlayerWallet(); Assert.IsEmpty(wallet.Available());
+            wallet.Deposit(40); Assert.IsTrue(wallet.TryUnlock(ItemKind.Magnet)); Assert.AreEqual(10, wallet.Coins);
+            Assert.IsFalse(wallet.TryUnlock(ItemKind.Shield)); CollectionAssert.AreEqual(new[] { ItemKind.Magnet }, wallet.Available());
+            wallet.UnlockAll = true; Assert.AreEqual(ItemCatalog.All.Length, wallet.Available().Count);
         }
-        [Test] public void DailyRankingSortsAndPersistsPerDay()
+        [Test] public void LeaderboardRanksByDistanceOverallAndPerDay()
+        {
+            var today = DateTime.Now; var yesterday = today.AddDays(-1);
+            var board = new Leaderboard();
+            var old = new RankingEntry { Name = "Old", Distance = 900, Ticks = yesterday.Ticks };
+            var a = new RankingEntry { Name = "A", Distance = 300, Score = 9999, Ticks = today.Ticks };
+            var b = new RankingEntry { Name = "B", Distance = 500, Score = 1, Ticks = today.Ticks + 1 };
+            Assert.AreEqual(1, board.Add(old)); Assert.AreEqual(2, board.Add(a)); Assert.AreEqual(2, board.Add(b));
+            Assert.AreEqual(3, board.RankOf(a, false), "Distance decides the rank, not score");
+            Assert.AreEqual(2, board.RankOf(a, true), "Yesterday's run does not count for today");
+            CollectionAssert.AreEqual(new[] { "B", "A" }, board.View(true, today).ConvertAll(e => e.Name));
+            board.ClearDay(Leaderboard.DayKey(today));
+            CollectionAssert.AreEqual(new[] { "Old" }, board.View(false, today).ConvertAll(e => e.Name));
+        }
+        [Test] public void PlayerStorePersistsProfileWalletRecordsAndStats()
         {
             string root = Path.Combine(Path.GetTempPath(), "muhanok-test-" + Guid.NewGuid().ToString("N"));
             try
             {
-                var store = new ExhibitionStore(root);
-                Assert.AreEqual(1, store.Record(new RankingEntry { Name = "A", Score = 100, Ticks = 1 }));
-                Assert.AreEqual(1, store.Record(new RankingEntry { Name = "B", Score = 300, Ticks = 2 }));
-                Assert.AreEqual(2, store.Record(new RankingEntry { Name = "C", Score = 200, Ticks = 3 }));
-                store.DepositCoins(55);
-                var reopened = new ExhibitionStore(root);
-                CollectionAssert.AreEqual(new[] { "B", "C", "A" }, new List<RankingEntry>(reopened.Today.Entries).ConvertAll(e => e.Name));
-                Assert.AreEqual(55, reopened.Progress.CoinPool);
-                reopened.ClearToday(); Assert.AreEqual(0, new ExhibitionStore(root).Today.Entries.Count);
+                var store = new PlayerProgressStore(root);
+                Assert.IsFalse(store.Profile.HasName);
+                store.SaveProfile(new PlayerProfile { Name = "탈옥왕", Weight = "60", Style = PlayStyle.UpperBody });
+                long now = DateTime.Now.Ticks;
+                Assert.AreEqual(1, store.Record(new RankingEntry { Name = "탈옥왕", Distance = 120, Ticks = now }, 12.5));
+                Assert.AreEqual(1, store.Record(new RankingEntry { Name = "탈옥왕", Distance = 340, Ticks = now + 1 }, 30));
+                store.DepositCoins(55); Assert.IsTrue(store.Unlock(ItemKind.Magnet));
+                var reopened = new PlayerProgressStore(root);
+                Assert.AreEqual("탈옥왕", reopened.Profile.Name); Assert.AreEqual(PlayStyle.UpperBody, reopened.Profile.Style);
+                CollectionAssert.AreEqual(new[] { 340f, 120f }, new List<RankingEntry>(reopened.Board.All).ConvertAll(e => e.Distance));
+                Assert.AreEqual(2, reopened.Stats.Runs); Assert.AreEqual(460, reopened.Stats.TotalDistance, .01f);
+                Assert.AreEqual(42.5, reopened.Stats.TotalKcal, .01); Assert.GreaterOrEqual(reopened.Stats.BestDistance, 340);
+                Assert.AreEqual(25, reopened.Wallet.Coins); Assert.IsTrue(reopened.Wallet.IsUnlocked(ItemKind.Magnet));
+                reopened.ClearToday(); Assert.AreEqual(0, new PlayerProgressStore(root).Board.All.Count);
             }
             finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+        }
+        [Test] public void AbandoningARunReturnsToTitleWithoutAResult()
+        {
+            var flow = new GameFlowController();
+            flow.Transition(GameFlowState.TitleIdle); flow.Transition(GameFlowState.LoadingIntro); flow.Transition(GameFlowState.Running);
+            Assert.IsTrue(flow.Transition(GameFlowState.Retry)); Assert.IsTrue(flow.Transition(GameFlowState.TitleIdle));
         }
     }
 }
