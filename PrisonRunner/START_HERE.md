@@ -29,12 +29,11 @@
 | `Unity/` | 게임 코드·씬·리소스 | `Assets/Game/Scenes/GameScene.unity` |
 | `docs/` | 기획서·설계·검수 기록 | `README.md`, **기획서 V13** |
 | `docs/previews/ArtV10/` | 최신 아트 실제 캡처 | `index.html` |
-| `References/` | 참고 자료·Blender 제작 원본·출처 | 제작 시 확인 |
-| `Tools/AssetPipeline/` | 제작·문서 검증용 도구 | 플레이에는 실행 불필요 |
-| `Tools/Distribution/` | 배포 ZIP 생성 도구 | 제작자용 |
+| `References/` | Blender 제작 원본, 블록아웃 프리팹 백업, 리소스 출처 기록 | 제작 시 확인 |
+| `Tools/AssetPipeline/` | Blender 캐릭터·모듈 생성, 무료 키트 임포트 | 플레이에는 실행 불필요 |
 | `Builds/Windows/` | 이 PC의 로컬 실행 파일 | GitHub에는 Release ZIP으로 배포 |
 
-기획서 V10~V12와 ArtV2~V9 캡처는 이전 기록입니다. 현재 안내는 **기획서 V13**, **게임 아트 V10 + 운동·가속 구현**을 기준으로 합니다. V13에서 거리와 속도 수치를 미정으로 둔 것은 문서 기획이며, 현재 게임 구현 수치를 변경한 작업은 아닙니다.
+기획서 V13에서 거리와 속도 수치를 미정으로 둔 것은 문서 기획이며, 현재 게임 구현 수치를 변경한 작업은 아닙니다.
 
 ## Unity로 개발하려면
 

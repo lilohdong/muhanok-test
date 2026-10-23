@@ -1,6 +1,6 @@
 # 맵별 운동과 점진 가속
 
-2026년 10월 5일. V10 맵과 캐릭터 위에 플레이 기능만 추가한다.
+V10 맵과 캐릭터 위에 추가한 플레이 기능이다. 아래 가속은 첫 바퀴 기준이며, 두 번째 바퀴부터는 휴식/질주 인터벌([BODY_TRACKING.md](BODY_TRACKING.md#전시-기능))이 적용된다.
 
 ## 플레이
 
@@ -13,20 +13,8 @@
 
 도보와 수레는 기본 9m/s에서 시작해 실제 이동 거리 120m당 1m/s씩 연속으로 가속한다. 480m에서 13m/s, 960m부터 최대 17m/s다. 바나나·물웅덩이 감속은 기존처럼 2.4초간 50%이며 진행 거리와 가속은 실제 이동량을 따른다. 일시정지는 진행을 멈추고 재시작은 기본 속도로 복귀한다. HUD에 현재 속도를 표시하고 다음 운동 안내는 속도에 맞춰 최대 약 1.35초 앞에서 표시한다.
 
-## 변경 파일
+## 조정과 재배치
 
-추가: `Unity/Assets/Game/Editor/MuhanokGameplayUpgrade.cs`와 `.meta`, 이 문서.
+수치는 `GameSettings.asset`(`BaseSpeed`, `MaxSpeed`, `SpeedRampDistance`)에서 바꾼다. Unity 메뉴 `Muhanok/Apply Map Exercises and Progressive Speed`는 기존 환경·캐릭터를 보존하며 운동 장애물만 다시 배치한다.
 
-수정: `Domain/RunRules.cs`, `Content/Data/GameSettings.asset`, `Presentation/Map/MuhanokMapChunk.cs`, `ChunkSpawner.cs`, `Presentation/UI/HUDPresenter.cs`, `HUDPresenter.Start.cs`, `Editor/MuhanokArtUpgrade.Maps.cs`, `Tests/EditMode/RunRulesTests.cs`, `Tests/PlayMode/CollisionAndCartTests.cs`, `StartAndGateTests.cs`. `Content/Prefabs`의 기존 맵 13개에는 운동 배열을 저장했다. README와 AGENTS.md에도 현재 기능을 기록한다.
-
-Unity 메뉴 `Muhanok/Apply Map Exercises and Progressive Speed`는 기존 환경·캐릭터를 보존하며 운동 장애물만 다시 배치한다. 전체 아트 재생성 경로도 같은 설정을 호출한다. 실행 파일은 `Builds/Windows/Muhanok.exe`다.
-
-## 검증
-
-Unity 6000.3.10f1에서 최종 EditMode 49개와 PlayMode 23개를 모두 통과했다. 실패 0개, C# 컴파일 오류 0개다. 결과는 `Unity/Logs/GameplayEditModeFinal.xml`, `GameplayPlayModeFinal.xml`이다. `GameplayUpgrade.log`의 `MUHANOK_GAMEPLAY_UPGRADE_PASS`로 실제 맵 저장도 확인했다.
-
-최종 Windows 빌드는 `GameplayBuildFinal.log`의 `MUHANOK_BUILD_PASS`로 성공을 확인했다. 실행 파일을 갱신했으며 `GameplayRuntimeSmoke.log`의 `MUHANOK_RUNTIME_SMOKE_PASS`로 로딩 후 직접 플레이, 바닥 감속, 120개 청크 재사용, 한 번 충돌 종료, 결과 화면과 재시작을 확인했다. 실행 검증 종료 코드는 0이다.
-
-최고 속도 검증은 실제 풀링된 맵에서 두 바퀴를 30fps로 진행하며 점프·슬라이드·하이니·문 회피·수레 기울이기를 평가한다. 최고 속도에서도 통과 가능하며 생성한 청크 개수는 증가하지 않았다. 바닥 아이템과 실제 웹캠 동작의 정확도는 이 최고 속도 자동 조작 테스트 범위에 포함하지 않는다. 기존 바닥 아이템, 바나나 누적 추격, 충돌 종료와 재시작은 별도 기존 테스트를 함께 통과했다. 현재 남은 기능 오류는 자동 테스트에서 발견되지 않았으며, 실제 몸동작 난이도와 시각적인 운동 타이밍 검수는 남아 있다.
-
-다음 추천 작업: 키보드 및 실제 몸동작 플레이로 최대 속도와 운동 안내 시간을 사용자 체력에 맞게 조정한다.
+자동 테스트(`RunRulesTests`, `CollisionAndCartTests`, `StartAndGateTests`)는 최고 속도에서도 모든 운동 장애물을 통과할 수 있는지 확인한다. 실제 몸동작으로 느끼는 난이도와 운동 안내 시간은 현장 검수가 남아 있다.
