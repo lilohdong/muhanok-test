@@ -5,13 +5,16 @@ namespace Muhanok.Domain
 {
     public enum PlayStyle { FullBody, UpperBody, Keyboard }
 
-    // One exhibition visitor: kept across "다시 하기", cleared by "다음 관람객".
-    public sealed class VisitorProfile
+    // The player on this PC. In developer (exhibition) mode each run gets its own name instead.
+    [Serializable]
+    public sealed class PlayerProfile
     {
         public string Name = "";
         public string Weight = "";
         public PlayStyle Style = PlayStyle.FullBody;
-        public string DisplayName => string.IsNullOrWhiteSpace(Name) ? "관람객" : Name.Trim();
+        public bool HasName => !string.IsNullOrWhiteSpace(Name);
+        public string DisplayName => HasName ? Name.Trim() : "플레이어";
+        public PlayerProfile Clone() => (PlayerProfile)MemberwiseClone();
     }
 
     public static class PlayStyleInfo
@@ -26,23 +29,48 @@ namespace Muhanok.Domain
     public sealed class RankingEntry
     {
         public string Name; public int Score; public float Distance; public int Coins; public string Style; public long Ticks;
+        public string Day => Leaderboard.DayKey(new DateTime(Ticks));
     }
 
-    // Exhibition ranking: only the given day's records count.
-    public sealed class DailyRanking
+    // Distance ranking of every run on this PC; "today" is the same list filtered by day.
+    public sealed class Leaderboard
     {
+        public const int MaxEntries = 500;
         private readonly List<RankingEntry> entries = new List<RankingEntry>();
-        public string Day { get; private set; }
-        public IReadOnlyList<RankingEntry> Entries => entries;
-        public DailyRanking(string day) { Day = day; }
+        public IReadOnlyList<RankingEntry> All => entries;
         public static string DayKey(DateTime time) => time.ToString("yyyyMMdd");
+        public List<RankingEntry> Day(string day) => entries.FindAll(e => e.Day == day);
+        public List<RankingEntry> View(bool todayOnly, DateTime now) => todayOnly ? Day(DayKey(now)) : new List<RankingEntry>(entries);
+        // Adds a run and returns its 1-based rank among all runs.
         public int Add(RankingEntry entry)
         {
             entries.Add(entry); Sort();
+            if (entries.Count > MaxEntries) entries.RemoveRange(MaxEntries, entries.Count - MaxEntries);
             return entries.IndexOf(entry) + 1;
         }
+        // 1-based rank within all runs or within the entry's own day; 0 when it is not on the board.
+        public int RankOf(RankingEntry entry, bool sameDay)
+        {
+            if (entry == null || !entries.Contains(entry)) return 0;
+            if (!sameDay) return entries.IndexOf(entry) + 1;
+            return Day(entry.Day).IndexOf(entry) + 1;
+        }
         public void Load(IEnumerable<RankingEntry> saved) { entries.Clear(); if (saved != null) entries.AddRange(saved); Sort(); }
-        public void Clear() => entries.Clear();
-        private void Sort() => entries.Sort((a, b) => b.Score != a.Score ? b.Score.CompareTo(a.Score) : a.Ticks.CompareTo(b.Ticks));
+        public void ClearDay(string day) => entries.RemoveAll(e => e.Day == day);
+        private void Sort() => entries.Sort((a, b) => b.Distance != a.Distance ? b.Distance.CompareTo(a.Distance) : a.Ticks.CompareTo(b.Ticks));
+    }
+
+    // Lifetime totals shown on the profile screen.
+    [Serializable]
+    public sealed class PlayerStats
+    {
+        public int Runs;
+        public float BestDistance, TotalDistance;
+        public double TotalKcal;
+        public void Add(float distance, double kcal)
+        {
+            Runs++; TotalDistance += Math.Max(0f, distance); TotalKcal += Math.Max(0, kcal);
+            BestDistance = Math.Max(BestDistance, distance);
+        }
     }
 }

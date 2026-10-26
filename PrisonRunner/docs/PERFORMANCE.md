@@ -1,4 +1,4 @@
-# 성능 최적화 (브랜치 feature/performance-optimization, 2026-10-12)
+# 성능 최적화
 
 목표: 2024 LG 그램 내장 그래픽(Intel Arc / Core Ultra)에서 끊김 없이 30~60fps. 측정은 **F3** 성능 측정 표시로 합니다.
 

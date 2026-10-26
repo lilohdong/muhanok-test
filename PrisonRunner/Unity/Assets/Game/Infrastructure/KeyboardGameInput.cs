@@ -11,11 +11,12 @@ namespace Muhanok.Infrastructure
         public static bool StartPressed => (Mouse.current != null && (Mouse.current.leftButton.wasPressedThisFrame
             || Mouse.current.rightButton.wasPressedThisFrame || Mouse.current.middleButton.wasPressedThisFrame))
             || (Touchscreen.current != null && Touchscreen.current.primaryTouch.press.wasPressedThisFrame);
-        // Operator keys for the exhibition: R recalibrates the camera pose, Ctrl+F10 clears today's ranking.
+        // R recalibrates the camera pose. Ctrl+Shift+F12 toggles developer (exhibition) mode, where Ctrl+F10 clears today's ranking.
         public static bool RecalibratePressed => Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame;
         public static bool SettingsPressed => Keyboard.current != null && Keyboard.current.f1Key.wasPressedThisFrame;
         public static bool OverlayPressed => Keyboard.current != null && Keyboard.current.f3Key.wasPressedThisFrame;
         public static bool ClearRankingPressed => Keyboard.current != null && Keyboard.current.ctrlKey.isPressed && Keyboard.current.f10Key.wasPressedThisFrame;
+        public static bool DeveloperTogglePressed => Keyboard.current != null && Keyboard.current.ctrlKey.isPressed && Keyboard.current.shiftKey.isPressed && Keyboard.current.f12Key.wasPressedThisFrame;
         // Korean names need the IME while the setup text fields are open.
         public static void SetTextInput(bool on) { if (Keyboard.current != null) Keyboard.current.SetIMEEnabled(on); }
         public void Poll()

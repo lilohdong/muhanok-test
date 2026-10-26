@@ -14,6 +14,8 @@ Mixamo 원본 캐릭터·애니메이션 파일은 일반 공개 재배포 대�
 
 ## 그 외
 
+제목 글꼴 Black Han Sans(Zess Type)는 SIL Open Font License 1.1이며 `Unity/Assets/Game/Content/UI/Resources/MuhanokUI/BlackHanSans-Regular.ttf`에 있습니다.
+
 Blender 캐릭터·환경·자체 동작의 제작 원본은 `References/Blender/`, 실제 사용 FBX는 `Unity/Assets/External/Staging/Blender/`에 있습니다. 생성 재질 출처는 `References/GeneratedV6/Provenance.md`에 있습니다. 로딩 이미지와 참고 이미지는 해당 프로젝트에서 제공받은 자료입니다.
 
 몸동작 인식은 Unity Inference Engine(com.unity.ai.inference)으로 게임 안에서 실행합니다. 모델은 Google MediaPipe BlazePose를 Unity가 Inference Engine용 ONNX로 변환해 공개한 [unity/inference-engine-blaze-pose](https://huggingface.co/unity/inference-engine-blaze-pose)(Apache-2.0)의 `pose_detection.onnx`, `pose_landmarks_detector_full.onnx`, `pose_landmarks_detector_lite.onnx`, `anchors.csv`이며 `Unity/Assets/Game/Content/Pose/Resources/MuhanokPose/`에 있습니다. 배경 음악과 효과음은 실행 중 코드로 합성하며 외부 음원 파일을 쓰지 않습니다. Unity 패키지의 라이선스는 각 공급자의 조건을 따릅니다. 현재 저장소에 프로젝트 전체를 포괄하는 오픈소스 라이선스를 새로 지정하지 않았습니다.
